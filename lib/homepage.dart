@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:brick_breaker_game/ball.dart';
 import 'package:brick_breaker_game/brick.dart';
@@ -21,24 +22,22 @@ class _HomePageState extends State<HomePage> {
   //ball variables
   double ballX = 0;
   double ballY = 0;
-  double ballXincrements = 0.007;
+  double ballXincrements = 0.01;
   double ballYincrements = 0.007;
-  var ballYDirection = direction.DOWN;
-  var ballXDirection = direction.LEFT;
+  direction ballYDirection = direction.DOWN;
+  direction ballXDirection = direction.LEFT;
+
 
   //brick variables
   //equation: 2*wallGap + n*brickWidth + (n-1)*brickGap = 2
-  static double firstBrickX = -1 + wallGap;
+  
   static double firstBrickY = -0.9;
   static double brickWidth = 0.4; //out of 2
   static double brickHeight = 0.07; //out of 2
   static double brickGap = 0.13;
-  static int numberOfBricksInRow = 4;
-  static double wallGap =
-      0.5 *
-      (2 -
-          numberOfBricksInRow * brickWidth +
-          (numberOfBricksInRow - 1) * brickGap);
+  static int numberOfBricksInRow = 3;
+  static double wallGap =0.5 * (2 - numberOfBricksInRow * brickWidth - (numberOfBricksInRow - 1) * brickGap);
+  static double firstBrickX = -1 + wallGap;
   bool brickBroken = false;
 
   List MyBricks = [
@@ -100,6 +99,16 @@ class _HomePageState extends State<HomePage> {
 
   //start game
   void startGame() {
+    setState(() {
+      ballX = 0;
+      ballY = 0;
+      ballXDirection = direction.LEFT;
+      ballYDirection = direction.DOWN;
+
+      // Randomize increments to avoid repeating paths
+      ballXincrements = 0.009 + Random().nextDouble() * 0.002;
+      ballYincrements = 0.006 + Random().nextDouble() * 0.002;
+    });
     hasGameStarted = true;
     Timer.periodic(Duration(milliseconds: 10), (timer) {
       //update ball direction
@@ -121,7 +130,7 @@ class _HomePageState extends State<HomePage> {
 
   void checkForBrokenBricks() {
     //check for when ball hits the brick
-    for (int i = 0; i < MyBricks.length; i++){
+    for (int i = 0; i < MyBricks.length; i++) {
       if (ballX >= MyBricks[i][0] &&
           ballX <= MyBricks[i][0] + brickWidth &&
           ballY <= MyBricks[i][1] + brickHeight &&
@@ -131,24 +140,59 @@ class _HomePageState extends State<HomePage> {
 
           //since the ball is broken, update the direction of the ball
           //based on which side of the brick it will hit
+          double leftSideDist = (MyBricks[i][0] - ballX).abs();
+          double rightSideDist = (MyBricks[i][0] + brickWidth - ballX).abs();
+          double topSideDist = (MyBricks[i][1] - ballY).abs();
+          double bottomSideDist = (MyBricks[i][1] + brickHeight - ballY).abs();
 
-          //if ball hits bottom side of brik 
-          ballYDirection = direction.DOWN;
+          String min = findMin(
+            leftSideDist,
+            rightSideDist,
+            topSideDist,
+            bottomSideDist,
+          );
 
-          //if ball hits top side of brik 
-          ballYDirection = direction.UP;
-
-          //if ball hits left side of brik 
-          ballYDirection = direction.LEFT;
-          //if ball hits right side of brik 
-          ballYDirection = direction.RIGHT ;
-
-
+          switch (min) {
+            case 'left':
+              ballXDirection = direction.LEFT;
+              break;
+            case 'right':
+              ballXDirection = direction.RIGHT;
+              break;
+            case 'top':
+              ballYDirection = direction.UP;
+              break;
+            case 'bottom':
+              ballYDirection = direction.DOWN;
+              break;
+          }
         });
       }
-    }   
+    }
   }
 
+  //returns the smallest side
+  String findMin(double a, double b, double c, double d) {
+    List<double> myList = [a, b, c, d];
+    double currentMin = a;
+    for (int i = 0; i < myList.length; i++) {
+      if (myList[i] < currentMin) {
+        currentMin = myList[i];
+      }
+    }
+    if ((currentMin - a).abs() < 0.01) {
+      return 'left';
+    } else if ((currentMin - b).abs() < 0.01) {
+      return 'right';
+    } else if ((currentMin - c).abs() < 0.01) {
+      return 'top';
+    } else if ((currentMin - d).abs() < 0.01) {
+      return 'bottom';
+    }
+    return '';
+  }
+
+  //is player dead
   bool isPlayerDead() {
     if (ballY >= 1) {
       return true;
@@ -182,6 +226,15 @@ class _HomePageState extends State<HomePage> {
       //ball goes up when it hits the player
       if (ballY >= 0.9 && ballX >= playerX && ballX <= playerX + playerWidth) {
         ballYDirection = direction.UP;
+         // add horizontal variation
+        double hitPos = ballX - playerX; // relative hit position on paddle
+
+        if (hitPos < playerWidth / 3) {
+          ballXDirection = direction.LEFT;
+        } else if (hitPos > 2 * playerWidth / 3) {
+          ballXDirection = direction.RIGHT;
+        }
+
       }
       //ball goes down when it hits the top of the screen
       else if (ballY <= -1) {
@@ -199,26 +252,52 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void resetGame() {
+    setState(() {
+      playerX = -0.2;
+      ballX = 0;
+      ballY = 0;
+      isGameOver = false;
+      hasGameStarted = false;
+      ballXDirection = direction.LEFT;
+      ballYDirection = direction.DOWN;
+      MyBricks = [
+        [firstBrickX + 0 * (brickWidth + brickGap), firstBrickY, false],
+        [firstBrickX + 1 * (brickWidth + brickGap), firstBrickY, false],
+        [firstBrickX + 2 * (brickWidth + brickGap), firstBrickY, false],
+      ];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
       child: GestureDetector(
-        onTap: startGame,
+      onTap: () {
+        if (!isGameOver && !hasGameStarted) {
+          startGame();
+        }
+      },
         child: Scaffold(
           backgroundColor: Colors.deepPurple[100],
           body: Center(
             child: Stack(
               children: [
                 //tap to play
-                Coverscreen(hasGameStarted: hasGameStarted),
+                Coverscreen(hasGameStarted: hasGameStarted, isGameOver: isGameOver,),
 
                 //game over screen
-                GameoverScreen(isGameOver: isGameOver),
+                GameoverScreen(isGameOver: isGameOver, function: resetGame,),
 
                 //ball
-                MyBall(ballX: ballX, ballY: ballY),
+                MyBall(
+                  ballX: ballX,
+                  ballY: ballY,
+                  isGameOver: isGameOver,
+                  hasGameStarted: hasGameStarted,
+                ),
 
                 //Player
                 MyPlayer(playerX: playerX, playerWidth: playerWidth),

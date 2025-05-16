@@ -1,0 +1,47 @@
+// void checkForBrokenBricks() {
+//     double ballRadius = 0.02; // adjust if different in your code
+
+//     for (int i = 0; i < MyBricks.length; i++) {
+//       if (!MyBricks[i][2]) {
+//         double brickLeft = MyBricks[i][0];
+//         double brickRight = brickLeft + brickWidth;
+//         double brickTop = MyBricks[i][1];
+//         double brickBottom = brickTop + brickHeight;
+
+//         // Check for collision using axis-aligned bounding boxes (AABB)
+//         bool collisionX = ballX + ballRadius >= brickLeft && ballX - ballRadius <= brickRight;
+//         bool collisionY = ballY + ballRadius >= brickTop && ballY - ballRadius <= brickBottom;
+
+//         if (collisionX && collisionY) {
+//           setState(() {
+//             MyBricks[i][2] = true;
+
+//             // Compute how close the ball is to each side of the brick
+//             double overlapLeft = (ballX + ballRadius) - brickLeft;
+//             double overlapRight = brickRight - (ballX - ballRadius);
+//             double overlapTop = (ballY + ballRadius) - brickTop;
+//             double overlapBottom = brickBottom - (ballY - ballRadius);
+
+
+//             double minOverlap = [
+//               overlapLeft,
+//               overlapRight,
+//               overlapTop,
+//               overlapBottom
+//             ].reduce((a, b) => a < b ? a : b);
+
+//             // Change direction based on the side of minimum overlap
+//             if (minOverlap == overlapLeft) {
+//               ballXDirection = direction.LEFT;
+//             } else if (minOverlap == overlapRight) {
+//               ballXDirection = direction.RIGHT;
+//             } else if (minOverlap == overlapTop) {
+//               ballYDirection = direction.UP;
+//             } else if (minOverlap == overlapBottom) {
+//               ballYDirection = direction.DOWN;
+//             }
+//           });
+//         }
+//       }
+//     }
+//   }
